@@ -1,0 +1,154 @@
+---
+title: "R Notebook"
+author: "Xueshi Bai"
+output: html_notebook
+---
+Since the end of the Second Industrial Revolution, mankind has entered a new era. Later World War II was triggered by a lack of resources and attempts by certain parties to redefine the world. After World War II, people\'s lives still have not been improved. It is not until decades have passed since most parts of the world came to peace that people began to focus on the quality of life. The development of science and technology has gradually improved the quality of people\'s lives, and people\'s happiness has become a concern of society. Human happiness can come from all aspects, including material and spiritual aspects. It’s very interesting for me to understand the living standards of people in various countries, and the World Happiness Report is a good reference for my interest. The first World Happiness Report was officially released in seven year ago, becoming the world\'s first international survey report based on happiness, which aroused the attention of the international community. It is scored and measured from multiple angles, and it reflects the satisfaction of people in various countries with their own country. At the same time, by comparing the data of each country, we can also see the differences between each country. We can also compare the changes in each country over the years to see if society has improved in some of its areas of weakness. In addition, the authenticity of the World Happiness Report is unquestionable. It can help people from all countries answer to the world who don’t understand their national conditions about their country. It is also helpful to eliminate some long-term impressions and prejudices.
+My guilding question is for current Permanent Five countries from UNSC, in what domains are they successful and if they made any improvement in the next year. First, I want to look at their overall ranking. Then, to be more specific, I separated each field, and then separately count the scores of five countries in the domain. Finally, I made a point plot and from the plot we can easily tell in which domain did a country do a good job compared to other four countries and in the next year whether it is getting better or not.   
+
+
+```{r}
+rm(list = ls())
+
+library(mosaic)
+library(tidyverse)
+library(mosaicData)
+library(DataComputing)
+library(leaflet)
+```
+
+```{r}
+# Load data into r
+df2018<-read.csv("/Users/xueshibai/Downloads/psu/STAT184/world-happiness/2018.csv", row.names = 1)
+head(df2018)
+```
+
+```{r}
+df2019<-read.csv("/Users/xueshibai/Downloads/psu/STAT184/world-happiness/2019.csv", row.names = 1)
+head(df2019)
+```
+
+```{r}
+# Select my objects
+PermanentFiveCountry18 <-
+  df2018 %>%
+  filter(Country.or.region %in% c("United States", "Russia", "China", "United Kingdom", "France")) %>%
+  rename(Country = Country.or.region, GDP = GDP.per.capita, socSupport = Social.support, Healthy = Healthy.life.expectancy, Freedom = Freedom.to.make.life.choices, Corruption = Perceptions.of.corruption)
+PermanentFiveCountry18
+```
+
+
+```{r}
+PermanentFiveCountry19 <-
+  df2019 %>%
+  filter(Country.or.region %in% c("United States", "Russia", "China", "United Kingdom", "France")) %>%
+  rename(Country = Country.or.region, GDP = GDP.per.capita, socSupport = Social.support, Healthy = Healthy.life.expectancy, Freedom = Freedom.to.make.life.choices, Corruption = Perceptions.of.corruption)
+PermanentFiveCountry19
+```
+
+```{r}
+PFCountry18_overall <-
+  PermanentFiveCountry18 %>%
+  mutate(Year = "2018") %>%
+  select(Country, Score, Year)
+PFCountry18_overall
+```
+
+```{r}
+PFCountry19_overall <-
+  PermanentFiveCountry19 %>%
+  mutate(Year = "2019") %>%
+  select(Country, Score, Year)
+PFCountry19_overall
+```
+
+```{r}
+PFCountry1819_overall <-
+  full_join(PFCountry18_overall, PFCountry19_overall)
+PFCountry1819_overall
+```
+
+```{r}
+PFCountry1819_overall %>%
+  ggplot(aes(x = Country, y = Score)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ Year) +
+  theme(axis.text.x = element_text(angle = 90))
+PFCountry1819_overall
+```
+
+```{r}
+# Gather data to a narrow format
+PFCountry18_narrow <-
+  PermanentFiveCountry18 %>%
+  gather(key = Domain, value = Score, GDP, socSupport, Healthy, Freedom, Generosity, Corruption) %>%
+  mutate (Year = "2018")
+PFCountry18_narrow
+```
+```{r}
+# Convert character type to double
+PFCountry18_narrow$Score <- as.double(as.character(PFCountry18_narrow$Score))
+PFCountry18_narrow
+```
+```{r}
+# Generosity at here means how generous are people in this country so donation makes more sense at here 
+PFCountry18_narrowNew<-
+PFCountry18_narrow %>%
+mutate(Domain = gsub(pattern = "Generosity", replacement = "Donation", Domain))
+PFCountry18_narrowNew
+```
+
+```{r}
+PFCountry19_narrow <-
+  PermanentFiveCountry19 %>%
+  gather(key = Domain, value = Score, GDP, socSupport, Healthy, Freedom, Generosity, Corruption) %>%
+  mutate (Year = "2019")
+PFCountry19_narrow
+```
+
+```{r}
+PFCountry19_narrowNew <-
+PFCountry19_narrow %>%
+mutate(Domain = gsub(pattern = "Generosity", replacement = "Donation", Domain))
+PFCountry19_narrowNew
+```
+
+```{r}
+PFCountry1819_narrow <-
+  full_join(PFCountry18_narrowNew, PFCountry19_narrowNew)
+PFCountry1819_narrow
+```
+
+```{r}
+PFCountry1819_narrow %>%
+  ggplot(aes(x = Domain, y = Score)) +
+  geom_point(aes(color = Country)) +
+  facet_grid(~ Year) +
+  theme(axis.text.x = element_text(angle = 90))
+PFCountry1819_narrow
+```
+
+```{r}
+# For example, if you want to look at the top 3 of a single domain, you can complete this by ranking
+PFCountry18_health <-
+  PFCountry19_narrowNew %>%
+  filter(grepl("Healthy", Domain, ignore.case = TRUE)) %>%
+  filter(rank(desc(Score)) <= 3)
+PFCountry18_health
+```
+
+```{r}
+# Give a hypothesis that countries closed to sea will have a higher GDP
+my_map <-
+  leaflet() %>%
+  addTiles() %>%
+  addMarkers(my_map, lng=116.388333, lat=39.928889, popup="China")%>%
+  addMarkers(my_map, lng=52.129535, lat=19.394454, popup="Poland")
+my_map
+```
+```{r}
+# We can clearly see that Poland GDP is higher than China. It denies my orginal claim
+df2018 %>%
+  filter(Country.or.region %in% c("Poland", "China"))
+```
+
